@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Reading Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0a08;--surface:#1a120e;--card:#241810;--border:#3d2a1e;
+  --gold:#c9975a;--gold2:#e8b87a;--cream:#f0e6d3;--muted:#8a6e58;
+  --text:#f0e6d3;--sub:#b09070;
+}
+body{background:var(--bg);color:var(--text);font-family:'Lora',Georgia,serif;min-height:100vh;overflow-x:hidden;max-width:480px;margin:0 auto}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif}
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* HOME */
+#home{padding:0 0 100px}
+.home-top{padding:40px 20px 24px;background:linear-gradient(180deg,#1a0d08 0%,var(--bg) 100%)}
+.app-title{font-size:32px;color:var(--gold2);letter-spacing:0.02em;line-height:1.1}
+.app-title em{font-style:italic;color:var(--cream)}
+.subtitle{font-size:13px;color:var(--sub);margin-top:8px;font-style:italic}
+.stats-row{display:flex;gap:12px;padding:0 20px;margin:20px 0}
+.stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.stat-n{font-family:'Playfair Display',serif;font-size:28px;color:var(--gold);line-height:1}
+.stat-l{font-size:11px;color:var(--sub);margin-top:4px;font-style:italic}
+.divider{height:1px;background:var(--border);margin:0 20px}
+.shelf-label{padding:16px 20px 10px;font-size:11px;letter-spacing:0.15em;color:var(--sub);text-transform:uppercase}
+.shelf{display:flex;flex-direction:column;gap:12px;padding:0 20px}
+
+/* BOOK CARD */
+.book-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative}
+.book-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
+.book-card-main{display:flex;gap:14px;padding:16px 16px 16px 20px;cursor:pointer;transition:background .2s}
+.book-card-main:hover{background:var(--card)}
+
+.book-info{flex:1;min-width:0}
+.book-title-text{font-family:'Playfair Display',serif;font-size:15px;color:var(--cream);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book-author-text{font-size:12px;color:var(--sub);font-style:italic;margin-top:3px}
+.book-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.chip{font-size:10px;padding:3px 8px;border-radius:10px;font-family:'Lora',serif}
+.chip.q{background:#2a1010;color:#e06070;border:1px solid #5a2020}
+.chip.n{background:#0f1e18;color:#6abf8c;border:1px solid #1e4030}
+.chip.month{background:#1a1030;color:#8878cc;border:1px solid #2a2050}
+.book-del-row{display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:#1e0a0a;border-top:1px solid #3d1a1a}
+.book-del-row.show{display:flex}
+.book-del-row span{font-size:12px;color:#cc7070;font-style:italic}
+.book-del-actions{display:flex;gap:8px}
+.btn-sm{padding:6px 14px;border-radius:8px;font-family:'Lora',serif;font-size:12px;cursor:pointer;border:none}
+.btn-sm-cancel{background:var(--card);color:var(--sub);border:1px solid var(--border)}
+.btn-sm-confirm{background:#8b2e2e;color:#f0c0c0}
+.book-trash{background:none;border:none;color:var(--sub);font-size:15px;cursor:pointer;padding:4px 6px;opacity:0.6;transition:opacity .2s}
+.book-trash:hover{opacity:1}
+
+/* FABs */
+.add-fab{position:fixed;bottom:28px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;font-size:28px;color:#0f0a08;box-shadow:0 4px 24px rgba(201,151,90,0.45);transition:transform .15s;z-index:50;display:flex;align-items:center;justify-content:center}
+.add-fab:hover{transform:scale(1.07)}
+.add-fab:active{transform:scale(0.93)}
+.add-entry-fab{position:fixed;bottom:24px;right:20px;background:var(--gold);border:none;border-radius:28px;padding:14px 22px;color:#0f0a08;font-family:'Lora',serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 24px rgba(201,151,90,0.4);z-index:50;transition:transform .15s}
+.add-entry-fab:hover{transform:translateY(-2px)}
+.add-entry-fab:active{transform:scale(0.97)}
+
+.no-books{padding:60px 20px;text-align:center;color:var(--sub)}
+.no-books-icon{font-size:56px;margin-bottom:18px}
+.no-books p{font-size:15px;font-style:italic;line-height:1.7}
+.no-books strong{color:var(--gold);font-style:normal}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:flex-end;z-index:100}
+.modal-overlay.open{display:flex}
+.modal{width:100%;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:28px 20px 48px;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);margin-bottom:20px}
+.field-label{font-size:12px;color:var(--sub);margin-bottom:6px;font-style:italic;letter-spacing:0.04em}
+input[type=text],textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:'Lora',serif;font-size:14px;outline:none;margin-bottom:14px;transition:border-color .2s}
+input[type=text]:focus,textarea:focus{border-color:var(--gold)}
+textarea{resize:none;height:100px;line-height:1.6}
+.btn-row{display:flex;gap:10px}
+.btn{flex:1;padding:14px;border-radius:10px;font-family:'Lora',serif;font-size:14px;cursor:pointer;border:none;transition:opacity .15s,transform .1s}
+.btn:active{opacity:.8;transform:scale(0.98)}
+.btn-primary{background:var(--gold);color:#0f0a08;font-weight:700}
+.btn-cancel{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+
+/* DETAIL */
+#detail{padding:0 0 100px}
+.detail-header{padding:32px 20px 24px;background:linear-gradient(160deg,#4a1010 0%,#2a0e0e 50%,var(--bg) 100%)}
+.detail-back{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--cream);padding:7px 14px;border-radius:20px;font-family:'Lora',serif;font-size:13px;cursor:pointer;margin-bottom:20px;display:inline-block}
+.detail-book-title{font-family:'Playfair Display',serif;font-size:24px;color:var(--cream);line-height:1.2}
+.detail-book-author{font-size:13px;color:rgba(240,230,211,0.65);font-style:italic;margin-top:6px}
+.detail-book-month{font-size:12px;color:var(--gold);margin-top:10px;letter-spacing:0.03em}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg)}
+.tab{flex:1;padding:15px 0;text-align:center;font-size:13px;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;font-style:italic}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* ENTRIES */
+.entries{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.entry{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.entry.quote{border-left:3px solid #c0404a}
+.entry.note{border-left:3px solid #4a7c5a}
+.entry-main{padding:16px}
+.entry-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.entry-type{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub)}
+.entry.quote .entry-type{color:#e06070}
+.entry.note .entry-type{color:#6abf8c}
+.entry-trash{background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;opacity:0.5;padding:2px 4px;transition:opacity .2s}
+.entry-trash:hover{opacity:1}
+.entry-body{font-size:14px;line-height:1.7;color:var(--cream)}
+.entry.quote .entry-body{font-style:italic}
+.entry-page{font-size:11px;color:var(--sub);margin-top:10px}
+.entry-del-row{display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:#1e0a0a;border-top:1px solid #3d1a1a}
+.entry-del-row.show{display:flex}
+.entry-del-row span{font-size:12px;color:#cc7070;font-style:italic}
+
+.empty-state{padding:48px 20px;text-align:center;color:var(--sub);font-style:italic;font-size:14px;line-height:1.7}
+
+/* ENTRY TYPE TOGGLE */
+.etype-toggle{display:flex;gap:8px;margin-bottom:18px}
+.etype-btn{flex:1;padding:11px;border-radius:8px;font-family:'Lora',serif;font-size:13px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--sub);transition:all .2s;font-style:italic}
+.etype-btn.active-q{background:#2a1010;color:#e06070;border-color:#c0404a}
+.etype-btn.active-n{background:#0f1e18;color:#6abf8c;border-color:#2a6040}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="screen active" id="home">
+  <div class="home-top">
+    <div class="app-title">My <em>Reading</em><br>Journal</div>
+    <div class="subtitle">One book. One month. One story at a time.</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-n" id="stat-books">0</div><div class="stat-l">Books Read</div></div>
+    <div class="stat"><div class="stat-n" id="stat-quotes">0</div><div class="stat-l">Quotes Saved</div></div>
+    <div class="stat"><div class="stat-n" id="stat-notes">0</div><div class="stat-l">Notes Taken</div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="shelf-label">Your Shelf</div>
+  <div class="shelf" id="shelf"></div>
+  <button class="add-fab" onclick="openAddBook()">+</button>
+</div>
+
+<!-- DETAIL -->
+<div class="screen" id="detail">
+  <div class="detail-header">
+    <button class="detail-back" onclick="goHome()">← Shelf</button>
+    <div class="detail-book-title" id="detail-title"></div>
+    <div class="detail-book-author" id="detail-author"></div>
+    <div class="detail-book-month" id="detail-month"></div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('all',this)">All</div>
+    <div class="tab" onclick="switchTab('quote',this)">❝ Quotes</div>
+    <div class="tab" onclick="switchTab('note',this)">✎ Notes</div>
+  </div>
+  <div class="entries" id="entries"></div>
+  <button class="add-entry-fab" onclick="openAddEntry()">+ Add Entry</button>
+</div>
+
+<!-- ADD BOOK MODAL -->
+<div class="modal-overlay" id="add-book-modal" onclick="closeAddBook(event)">
+  <div class="modal">
+    <h3>Add a Book</h3>
+    <div class="field-label">Book Title *</div>
+    <input type="text" id="book-title-input" placeholder="e.g. Atomic Habits" autocomplete="off">
+    <div class="field-label">Author</div>
+    <input type="text" id="book-author-input" placeholder="e.g. James Clear" autocomplete="off">
+    <div class="field-label">Month &amp; Year Read</div>
+    <input type="text" id="book-month-input" placeholder="e.g. May 2026" autocomplete="off">
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeAddBook()">Cancel</button>
+      <button class="btn btn-primary" onclick="addBook()">Add to Shelf</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ENTRY MODAL -->
+<div class="modal-overlay" id="add-entry-modal" onclick="closeAddEntry(event)">
+  <div class="modal">
+    <h3>New Entry</h3>
+    <div class="etype-toggle">
+      <button class="etype-btn active-q" id="type-q" onclick="setEntryType('quote')">❝ Quote</button>
+      <button class="etype-btn" id="type-n" onclick="setEntryType('note')">✎ Note</button>
+    </div>
+    <div class="field-label" id="entry-label">Quote</div>
+    <textarea id="entry-text" placeholder="Enter the quote or passage..."></textarea>
+    <div class="field-label">Page / Chapter (optional)</div>
+    <input type="text" id="entry-page" placeholder="e.g. p.142 or Chapter 7" autocomplete="off">
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeAddEntry()">Cancel</button>
+      <button class="btn btn-primary" onclick="addEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let books = JSON.parse(localStorage.getItem('rj_books') || '[]');
+let currentBook = null;
+let currentTab = 'all';
+let currentEntryType = 'quote';
+
+/* ── LIVE TITLE CASE ── */
+const MINORS = new Set(['a','an','the','and','but','or','for','nor','on','at','to','by','in','of','up','as','is']);
+function toTitleCase(str) {
+  return str.replace(/(\S+)/g, (word, _, offset) => {
+    const lower = word.toLowerCase();
+    return (offset === 0 || !MINORS.has(lower))
+      ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      : lower;
+  });
+}
+function attachLiveTitleCase(id) {
+  document.getElementById(id).addEventListener('input', function() {
+    const pos = this.selectionStart;
+    const transformed = toTitleCase(this.value);
+    if (transformed !== this.value) {
+      this.value = transformed;
+      this.setSelectionRange(pos, pos);
+    }
+  });
+}
+['book-title-input','book-author-input','book-month-input'].forEach(attachLiveTitleCase);
+
+/* ── UTILS ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function save() { localStorage.setItem('rj_books', JSON.stringify(books)); }
+function updateStats() {
+  let q = 0, n = 0;
+  books.forEach(b => b.entries.forEach(e => e.type === 'quote' ? q++ : n++));
+  document.getElementById('stat-books').textContent = books.length;
+  document.getElementById('stat-quotes').textContent = q;
+  document.getElementById('stat-notes').textContent = n;
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* ── SHELF ── */
+function renderShelf() {
+  updateStats();
+  const shelf = document.getElementById('shelf');
+  shelf.innerHTML = '';
+  if (books.length === 0) {
+    shelf.innerHTML = `<div class="no-books"><div class="no-books-icon">📚</div><p>Your shelf is empty.<br>Tap <strong>+</strong> to add your first book.</p></div>`;
+    return;
+  }
+
+  books.forEach((b, i) => {
+    const q = b.entries.filter(e => e.type === 'quote').length;
+    const n = b.entries.filter(e => e.type === 'note').length;
+
+    const card = document.createElement('div');
+    card.className = 'book-card';
+
+    /* Main tappable row */
+    const main = document.createElement('div');
+    main.className = 'book-card-main';
+    main.innerHTML = `
+      
+      <div class="book-info">
+        <div class="book-title-text">${esc(b.title)}</div>
+        <div class="book-author-text">${esc(b.author || 'Unknown Author')}</div>
+        <div class="book-meta">
+          ${b.month ? `<span style="font-size:11px;color:var(--sub);font-style:italic;">${esc(b.month)}</span>` : ''}
+          ${q ? `<span class="chip q">${q} quote${q!==1?'s':''}</span>` : ''}
+          ${n ? `<span class="chip n">${n} note${n!==1?'s':''}</span>` : ''}
+        </div>
+      </div>
+      <button class="book-trash" title="Delete book">×</button>`;
+    main.querySelector('.book-trash').addEventListener('click', ev => {
+      ev.stopPropagation();
+      delRow.classList.toggle('show');
+    });
+    main.addEventListener('click', () => openBook(i));
+
+    /* Inline confirm bar */
+    const delRow = document.createElement('div');
+    delRow.className = 'book-del-row';
+    delRow.innerHTML = `<span>Delete "${esc(b.title)}"?</span><div class="book-del-actions"><button class="btn-sm btn-sm-cancel">Cancel</button><button class="btn-sm btn-sm-confirm">Delete</button></div>`;
+    delRow.querySelector('.btn-sm-cancel').addEventListener('click', () => delRow.classList.remove('show'));
+    delRow.querySelector('.btn-sm-confirm').addEventListener('click', () => {
+      books.splice(i, 1);
+      save();
+      renderShelf();
+    });
+
+    card.appendChild(main);
+    card.appendChild(delRow);
+    shelf.appendChild(card);
+  });
+}
+
+/* ── ADD BOOK ── */
+function openAddBook() {
+  document.getElementById('add-book-modal').classList.add('open');
+  setTimeout(() => document.getElementById('book-title-input').focus(), 320);
+}
+function closeAddBook(e) {
+  if (e && e.target !== document.getElementById('add-book-modal')) return;
+  document.getElementById('add-book-modal').classList.remove('open');
+  ['book-title-input','book-author-input','book-month-input'].forEach(id => document.getElementById(id).value = '');
+}
+function addBook() {
+  const rawTitle = document.getElementById('book-title-input').value.trim();
+  if (!rawTitle) { document.getElementById('book-title-input').focus(); return; }
+  const rawAuthor = document.getElementById('book-author-input').value.trim();
+  const rawMonth  = document.getElementById('book-month-input').value.trim();
+  books.unshift({
+    title:  toTitleCase(rawTitle),
+    author: rawAuthor ? toTitleCase(rawAuthor) : '',
+    month:  rawMonth  ? toTitleCase(rawMonth)  : '',
+    entries: [],
+    id: Date.now()
+  });
+  save();
+  document.getElementById('add-book-modal').classList.remove('open');
+  ['book-title-input','book-author-input','book-month-input'].forEach(id => document.getElementById(id).value = '');
+  renderShelf();
+}
+
+/* ── OPEN BOOK ── */
+function openBook(idx) {
+  currentBook = idx;
+  const b = books[idx];
+  document.getElementById('detail-title').textContent  = b.title;
+  document.getElementById('detail-author').textContent = b.author || '';
+  document.getElementById('detail-month').textContent  = b.month ? 'Read: ' + b.month : '';
+  currentTab = 'all';
+  document.querySelectorAll('.tab').forEach((t, i) => t.className = 'tab' + (i === 0 ? ' active' : ''));
+  renderEntries();
+  showScreen('detail');
+}
+function goHome() { showScreen('home'); renderShelf(); }
+
+/* ── TABS ── */
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderEntries();
+}
+
+/* ── ENTRIES ── */
+function renderEntries() {
+  const b = books[currentBook];
+  const container = document.getElementById('entries');
+  container.innerHTML = '';
+  const list = currentTab === 'all' ? b.entries : b.entries.filter(e => e.type === currentTab);
+  if (!list.length) {
+    const label = currentTab === 'all' ? 'entries' : currentTab + 's';
+    container.innerHTML = `<div class="empty-state">No ${label} yet.<br><em>Tap "+ Add Entry" to begin.</em></div>`;
+    return;
+  }
+  /* Newest first — capture the real index before reversing */
+  [...list].reverse().forEach(entry => {
+    const realIdx = b.entries.indexOf(entry);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'entry ' + entry.type;
+
+    /* Main content */
+    const main = document.createElement('div');
+    main.className = 'entry-main';
+
+    const top = document.createElement('div');
+    top.className = 'entry-top';
+
+    const typeLabel = document.createElement('div');
+    typeLabel.className = 'entry-type';
+    typeLabel.textContent = entry.type === 'quote' ? '❝ Quote' : '✎ Note';
+
+    const trash = document.createElement('button');
+    trash.className = 'entry-trash';
+    trash.textContent = '×';
+    trash.title = 'Delete entry';
+    trash.addEventListener('click', () => delRow.classList.toggle('show'));
+
+    top.appendChild(typeLabel);
+    top.appendChild(trash);
+
+    const body = document.createElement('div');
+    body.className = 'entry-body';
+    body.innerHTML = entry.type === 'quote'
+      ? '\u201c' + esc(entry.text).replace(/\n/g, '<br>') + '\u201d'
+      : esc(entry.text).replace(/\n/g, '<br>');
+
+    main.appendChild(top);
+    main.appendChild(body);
+
+    if (entry.page) {
+      const pg = document.createElement('div');
+      pg.className = 'entry-page';
+      pg.textContent = '— ' + entry.page;
+      main.appendChild(pg);
+    }
+
+    /* Inline confirm bar */
+    const delRow = document.createElement('div');
+    delRow.className = 'entry-del-row';
+    delRow.innerHTML = `<span>Delete this entry?</span><div class="book-del-actions"><button class="btn-sm btn-sm-cancel">Cancel</button><button class="btn-sm btn-sm-confirm">Delete</button></div>`;
+    delRow.querySelector('.btn-sm-cancel').addEventListener('click', () => delRow.classList.remove('show'));
+    delRow.querySelector('.btn-sm-confirm').addEventListener('click', () => {
+      books[currentBook].entries.splice(realIdx, 1);
+      save();
+      renderEntries();
+      updateStats();
+    });
+
+    wrap.appendChild(main);
+    wrap.appendChild(delRow);
+    container.appendChild(wrap);
+  });
+}
+
+/* ── ADD ENTRY ── */
+function openAddEntry() {
+  document.getElementById('add-entry-modal').classList.add('open');
+  setTimeout(() => document.getElementById('entry-text').focus(), 320);
+}
+function closeAddEntry(e) {
+  if (e && e.target !== document.getElementById('add-entry-modal')) return;
+  document.getElementById('add-entry-modal').classList.remove('open');
+  document.getElementById('entry-text').value = '';
+  document.getElementById('entry-page').value = '';
+}
+function setEntryType(type) {
+  currentEntryType = type;
+  document.getElementById('type-q').className = 'etype-btn' + (type === 'quote' ? ' active-q' : '');
+  document.getElementById('type-n').className = 'etype-btn' + (type === 'note'  ? ' active-n' : '');
+  document.getElementById('entry-label').textContent = type === 'quote' ? 'Quote' : 'Note';
+  document.getElementById('entry-text').placeholder  = type === 'quote'
+    ? 'Enter the quote or passage...'
+    : 'Write your thoughts and reflections...';
+}
+function addEntry() {
+  const text = document.getElementById('entry-text').value.trim();
+  if (!text) { document.getElementById('entry-text').focus(); return; }
+  const page = document.getElementById('entry-page').value.trim();
+  books[currentBook].entries.push({ type: currentEntryType, text, page, id: Date.now() });
+  save();
+  document.getElementById('add-entry-modal').classList.remove('open');
+  document.getElementById('entry-text').value = '';
+  document.getElementById('entry-page').value = '';
+  renderEntries();
+  updateStats();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeAddBook(); closeAddEntry(); }
+});
+
+renderShelf();
+</script>
+</body>
+</html>
