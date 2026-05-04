@@ -7,6 +7,8 @@
 <link rel="icon" type="image/png" href="https://domnicffs.github.io/MyReadingJournal/icon.png?v=2">
 <link rel="apple-touch-icon" href="https://domnicffs.github.io/MyReadingJournal/icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0a08">
 <meta name="apple-mobile-web-app-title" content="My Reading Journal">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -77,7 +79,7 @@ h1,h2,h3{font-family:'Playfair Display',Georgia,serif}
 .inline-edit input:last-of-type{margin-bottom:10px}
 
 /* FABs */
-.add-fab{position:fixed;bottom:28px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;font-size:28px;color:#0f0a08;box-shadow:0 4px 24px rgba(201,151,90,0.45);transition:transform .15s;z-index:50;display:flex;align-items:center;justify-content:center}
+.add-fab{position:fixed;bottom:28px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;font-size:32px;color:#0f0a08;box-shadow:0 4px 24px rgba(201,151,90,0.45);transition:transform .15s;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1;padding:0 0 2px 0}
 .add-fab:hover{transform:scale(1.07)}
 .add-fab:active{transform:scale(0.93)}
 .add-entry-fab{position:fixed;bottom:24px;right:20px;background:var(--gold);border:none;border-radius:28px;padding:14px 22px;color:#0f0a08;font-family:'Lora',serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 24px rgba(201,151,90,0.4);z-index:50;transition:transform .15s}
@@ -181,8 +183,8 @@ textarea{resize:none;height:100px;line-height:1.6}
   </div>
   <div class="tabs">
     <div class="tab active" onclick="switchTab('all',this)">All</div>
-    <div class="tab" onclick="switchTab('quote',this)">❝ Quotes</div>
-    <div class="tab" onclick="switchTab('note',this)">✎ Notes</div>
+    <div class="tab" onclick="switchTab('quote',this)">Quotes</div>
+    <div class="tab" onclick="switchTab('note',this)">Notes</div>
   </div>
   <div class="entries" id="entries"></div>
   <button class="add-entry-fab" onclick="openAddEntry()">+ Add Entry</button>
@@ -210,8 +212,8 @@ textarea{resize:none;height:100px;line-height:1.6}
   <div class="modal">
     <h3>New Entry</h3>
     <div class="etype-toggle">
-      <button class="etype-btn active-q" id="type-q" onclick="setEntryType('quote')">❝ Quote</button>
-      <button class="etype-btn" id="type-n" onclick="setEntryType('note')">✎ Note</button>
+      <button class="etype-btn active-q" id="type-q" onclick="setEntryType('quote')">Quote</button>
+      <button class="etype-btn" id="type-n" onclick="setEntryType('note')">Note</button>
     </div>
     <div class="field-label" id="entry-label">Quote</div>
     <textarea id="entry-text" placeholder="Enter the quote or passage..."></textarea>
@@ -459,7 +461,7 @@ function renderEntries() {
     top.className = 'entry-top';
     const typeLabel = document.createElement('div');
     typeLabel.className = 'entry-type';
-    typeLabel.textContent = entry.type === 'quote' ? '❝ Quote' : '✎ Note';
+    typeLabel.textContent = entry.type === 'quote' ? 'Quote' : 'Note';
     const btns = document.createElement('div');
     btns.className = 'entry-btns';
 
@@ -548,6 +550,8 @@ function renderEntries() {
 
 /* ── ADD ENTRY ── */
 function openAddEntry() {
+  const defaultType = currentTab === 'note' ? 'note' : 'quote';
+  setEntryType(defaultType);
   document.getElementById('add-entry-modal').classList.add('open');
   setTimeout(() => document.getElementById('entry-text').focus(), 320);
 }
