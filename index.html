@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>My Reading Journal</title>
 <link rel="icon" type="image/png" href="https://domnicffs.github.io/MyReadingJournal/icon.png?v=2">
 <link rel="apple-touch-icon" href="https://domnicffs.github.io/MyReadingJournal/icon.png?v=2">
@@ -26,6 +26,17 @@ h1,h2,h3{font-family:'Playfair Display',Georgia,serif}
 /* HOME */
 #home{padding:0 0 100px}
 .home-top{padding:40px 20px 24px;background:linear-gradient(180deg,#1a0d08 0%,var(--bg) 100%)}
+.home-top-row{display:flex;justify-content:space-between;align-items:flex-start}
+.data-btns{display:flex;gap:8px;padding-top:6px}
+.data-btn{background:none;border:1px solid var(--border);color:var(--sub);font-size:11px;padding:8px 12px;border-radius:20px;cursor:pointer;transition:border-color .2s,color .2s;display:flex;align-items:center;justify-content:center}
+.data-btn:hover{border-color:var(--gold);color:var(--gold)}
+.data-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;z-index:200}
+.data-modal.open{display:flex}
+.data-modal-inner{width:100%;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:24px 20px 44px;animation:slideUp .3s ease}
+.data-modal-inner h3{font-family:'Playfair Display',serif;font-size:20px;color:var(--cream);margin-bottom:8px}
+.data-modal-inner p{font-size:12px;color:var(--sub);font-style:italic;margin-bottom:12px;line-height:1.5}
+.data-textarea{width:100%;height:160px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:monospace;font-size:11px;resize:none;outline:none;margin-bottom:14px}
+.data-textarea:focus{border-color:var(--gold)}
 .app-title{font-size:32px;color:var(--gold2);letter-spacing:0.02em;line-height:1.1}
 .app-title em{font-style:italic;color:var(--cream)}
 .subtitle{font-size:13px;color:var(--sub);margin-top:8px;font-style:italic}
@@ -154,8 +165,16 @@ textarea{resize:none;height:100px;line-height:1.6}
 <!-- HOME -->
 <div class="screen active" id="home">
   <div class="home-top">
-    <div class="app-title">My <em>Reading</em><br>Journal</div>
-    <div class="subtitle">One book. One month. One story at a time.</div>
+    <div class="home-top-row">
+      <div>
+        <div class="app-title">My <em>Reading</em><br>Journal</div>
+        <div class="subtitle">One book. One month. One story at a time.</div>
+      </div>
+      <div class="data-btns">
+        <button class="data-btn" onclick="openImportModal()" title="Import"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+        <button class="data-btn" onclick="openExportModal()" title="Export"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      </div>
+    </div>
   </div>
   <div class="stats-row">
     <div class="stat"><div class="stat-n" id="stat-books">0</div><div class="stat-l">Books Read</div></div>
@@ -188,6 +207,32 @@ textarea{resize:none;height:100px;line-height:1.6}
   </div>
   <div class="entries" id="entries"></div>
   <button class="add-entry-fab" onclick="openAddEntry()">+ Add Entry</button>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="data-modal" id="export-modal" onclick="closeExportModal(event)">
+  <div class="data-modal-inner">
+    <h3>Export Data</h3>
+    <p>Copy all the text below, save it somewhere safe (Notes app, email to yourself, etc). You'll paste it back to import later.</p>
+    <textarea class="data-textarea" id="export-textarea" readonly></textarea>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeExportModal()">Close</button>
+      <button class="btn btn-primary" onclick="copyExport()">Copy All</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="data-modal" id="import-modal" onclick="closeImportModal(event)">
+  <div class="data-modal-inner">
+    <h3>Import Data</h3>
+    <p>Paste your previously exported text below and tap Import.</p>
+    <textarea class="data-textarea" id="import-textarea" placeholder="Paste your exported data here..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doImport()">Import</button>
+    </div>
+  </div>
 </div>
 
 <!-- ADD BOOK MODAL -->
@@ -585,6 +630,79 @@ function addEntry() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeAddBook(); closeAddEntry(); }
 });
+
+/* ── EXPORT ── */
+function openExportModal() {
+  document.getElementById('export-textarea').value = JSON.stringify(books, null, 2);
+  document.getElementById('export-modal').classList.add('open');
+}
+function closeExportModal(e) {
+  if (e && e.target !== document.getElementById('export-modal')) return;
+  document.getElementById('export-modal').classList.remove('open');
+}
+function copyExport() {
+  const ta = document.getElementById('export-textarea');
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.querySelector('#export-modal .btn-primary');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy All', 2000);
+  }).catch(() => {
+    document.execCommand('copy');
+    const btn = document.querySelector('#export-modal .btn-primary');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy All', 2000);
+  });
+}
+
+/* ── IMPORT ── */
+function openImportModal() {
+  document.getElementById('import-textarea').value = '';
+  document.getElementById('import-modal').classList.add('open');
+}
+function closeImportModal(e) {
+  if (e && e.target !== document.getElementById('import-modal')) return;
+  document.getElementById('import-modal').classList.remove('open');
+}
+function doImport() {
+  const raw = document.getElementById('import-textarea').value.trim();
+  if (!raw) return;
+  try {
+    const imported = JSON.parse(raw);
+    if (!Array.isArray(imported)) throw new Error('Invalid');
+    const existingIds = new Set(books.map(b => b.id));
+    let added = 0;
+    imported.forEach(b => {
+      if (!existingIds.has(b.id)) { books.push(b); added++; }
+    });
+    save();
+    renderDailyQuote();
+    renderShelf();
+    closeImportModal();
+    const msg = added > 0
+      ? `Imported ${added} book${added !== 1 ? 's' : ''} successfully.`
+      : 'No new books — everything already exists.';
+    showToast(msg);
+  } catch(err) {
+    showToast('Could not read data. Make sure you pasted the full export.');
+  }
+}
+
+/* ── TOAST ── */
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#2a1e10;color:var(--cream);border:1px solid var(--border);padding:10px 20px;border-radius:20px;font-family:Lora,serif;font-size:13px;z-index:999;white-space:nowrap;transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 2500);
+}
 
 /* ── DAILY QUOTE ── */
 function renderDailyQuote() {
