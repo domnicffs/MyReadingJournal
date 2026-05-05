@@ -89,7 +89,20 @@ h1,h2,h3{font-family:'Playfair Display',Georgia,serif}
 .inline-edit input:focus{border-color:var(--gold)}
 .inline-edit input:last-of-type{margin-bottom:10px}
 
-/* FABs */
+/* READING CALENDAR */
+.cal-wrap{padding:12px 14px 14px 14px;border-top:1px solid var(--border);background:#16100c}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-month{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+.cal-nav{background:none;border:none;color:var(--sub);cursor:pointer;font-size:16px;padding:0 4px;line-height:1;opacity:.6;transition:opacity .2s}
+.cal-nav:hover{opacity:1}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-label{font-size:9px;color:var(--sub);text-align:center;padding-bottom:2px;letter-spacing:.05em}
+.cal-day{width:100%;aspect-ratio:1;border-radius:6px;background:var(--card);border:1px solid var(--border);font-size:11px;color:var(--sub);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s,color .15s;font-family:'Lora',serif;-webkit-tap-highlight-color:transparent}
+.cal-day:hover{border-color:var(--gold);color:var(--cream)}
+.cal-day.read{background:#0f2018;border-color:#2a6040;color:#6abf8c;font-weight:700}
+.cal-day.today{border-color:var(--gold);color:var(--gold)}
+.cal-day.today.read{background:#0f2018;border-color:#6abf8c;color:#6abf8c}
+.cal-day.empty{background:none;border-color:transparent;cursor:default;pointer-events:none}
 .add-fab{position:fixed;bottom:28px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--gold);border:none;cursor:pointer;font-size:32px;color:#0f0a08;box-shadow:0 4px 24px rgba(201,151,90,0.45);transition:transform .15s;z-index:50;display:flex;align-items:center;justify-content:center;line-height:1;padding:0 0 2px 0}
 .add-fab:hover{transform:scale(1.07)}
 .add-fab:active{transform:scale(0.93)}
@@ -427,7 +440,83 @@ function renderShelf() {
     delBtns.appendChild(cancelDel); delBtns.appendChild(confirmDel);
     delBar.appendChild(delSpan); delBar.appendChild(delBtns);
 
+    /* ── Reading Calendar ── */
+    const calWrap = document.createElement('div');
+    calWrap.className = 'cal-wrap';
+    calWrap.addEventListener('click', ev => ev.stopPropagation());
+
+    // State: which month is shown (default current)
+    const now = new Date();
+    let calYear = now.getFullYear();
+    let calMonth = now.getMonth(); // 0-indexed
+
+    function buildCalendar() {
+      calWrap.innerHTML = '';
+
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const dayLabels = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'cal-header';
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'cal-nav'; prevBtn.textContent = '‹';
+      prevBtn.addEventListener('click', () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} buildCalendar(); });
+      const monthLabel = document.createElement('span');
+      monthLabel.className = 'cal-month';
+      monthLabel.textContent = `${monthNames[calMonth]} ${calYear}`;
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'cal-nav'; nextBtn.textContent = '›';
+      nextBtn.addEventListener('click', () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} buildCalendar(); });
+      header.appendChild(prevBtn); header.appendChild(monthLabel); header.appendChild(nextBtn);
+      calWrap.appendChild(header);
+
+      // Day labels row
+      const grid = document.createElement('div');
+      grid.className = 'cal-grid';
+      dayLabels.forEach(d => {
+        const lbl = document.createElement('div');
+        lbl.className = 'cal-day-label';
+        lbl.textContent = d;
+        grid.appendChild(lbl);
+      });
+
+      // First day of month (Monday=0 offset)
+      const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+      const offset = (firstDay === 0) ? 6 : firstDay - 1; // shift so Mon=0
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+      // Empty cells before day 1
+      for (let e = 0; e < offset; e++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-day empty';
+        grid.appendChild(empty);
+      }
+
+      // Day cells
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = `cal_${b.id}_${calYear}_${calMonth+1}_${d}`;
+        const isRead = localStorage.getItem(key) === '1';
+        const isToday = calYear === now.getFullYear() && calMonth === now.getMonth() && d === now.getDate();
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day' + (isRead ? ' read' : '') + (isToday ? ' today' : '');
+        cell.textContent = d;
+        cell.addEventListener('click', () => {
+          const nowRead = localStorage.getItem(key) === '1';
+          if (nowRead) { localStorage.removeItem(key); } else { localStorage.setItem(key, '1'); }
+          buildCalendar();
+        });
+        grid.appendChild(cell);
+      }
+
+      calWrap.appendChild(grid);
+    }
+
+    buildCalendar();
+
     card.appendChild(main);
+    card.appendChild(calWrap);
     card.appendChild(editBar);
     card.appendChild(delBar);
     shelf.appendChild(card);
