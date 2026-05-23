@@ -833,7 +833,16 @@ document.addEventListener('keydown', e => {
 
 /* ── EXPORT ── */
 function openExportModal() {
-  document.getElementById('export-textarea').value = JSON.stringify(books, null, 2);
+  /* Gather all star and calendar keys from localStorage for these books */
+  const meta = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('rating_') || key.startsWith('cal_'))) {
+      meta[key] = localStorage.getItem(key);
+    }
+  }
+  const payload = { books, meta };
+  document.getElementById('export-textarea').value = JSON.stringify(payload, null, 2);
   document.getElementById('export-modal').classList.add('open');
 }
 function closeExportModal(e) {
@@ -869,14 +878,27 @@ function doImport() {
   const raw = document.getElementById('import-textarea').value.trim();
   if (!raw) return;
   try {
-    const imported = JSON.parse(raw);
-    if (!Array.isArray(imported)) throw new Error('Invalid');
+    const parsed = JSON.parse(raw);
+
+    /* Support both old format (plain array) and new format ({books, meta}) */
+    const importedBooks = Array.isArray(parsed) ? parsed : parsed.books;
+    const importedMeta  = (!Array.isArray(parsed) && parsed.meta) ? parsed.meta : {};
+
+    if (!Array.isArray(importedBooks)) throw new Error('Invalid');
+
+    /* Merge books */
     const existingIds = new Set(books.map(b => b.id));
     let added = 0;
-    imported.forEach(b => {
+    importedBooks.forEach(b => {
       if (!existingIds.has(b.id)) { books.push(b); added++; }
     });
     save();
+
+    /* Restore star ratings and calendar days */
+    Object.entries(importedMeta).forEach(([key, val]) => {
+      localStorage.setItem(key, val);
+    });
+
     renderDailyQuote();
     renderShelf();
     closeImportModal();
