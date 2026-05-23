@@ -62,12 +62,15 @@ h1,h2,h3{font-family:'Playfair Display',Georgia,serif}
 .book-info{flex:1;min-width:0}
 .book-title-text{font-family:'Playfair Display',serif;font-size:15px;color:var(--cream);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .book-author-text{font-size:12px;color:var(--sub);font-style:italic;margin-top:3px}
+.star-row{display:flex;gap:3px;margin-top:6px}
+.star{font-size:14px;cursor:pointer;color:#3a2a18;transition:color .15s,text-shadow .15s;line-height:1;-webkit-tap-highlight-color:transparent}
+.star.lit{color:#c9975a;text-shadow:0 0 6px rgba(201,151,90,0.7)}
 .book-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
 .chip{font-size:10px;padding:3px 8px;border-radius:10px;font-family:'Lora',serif}
 .chip.q{background:#2a1010;color:#e06070;border:1px solid #5a2020}
 .chip.n{background:#0f1e18;color:#6abf8c;border:1px solid #1e4030}
 .book-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
-.icon-btn{background:none;border:none;color:var(--sub);font-size:16px;cursor:pointer;padding:4px 6px;opacity:0.55;transition:opacity .2s;line-height:1}
+.icon-btn{background:none;border:none;color:var(--sub);font-size:19px;cursor:pointer;padding:4px 6px;opacity:0.55;transition:opacity .2s;line-height:1}
 .icon-btn:hover{opacity:1}
 
 /* CONFIRM / ACTION BARS */
@@ -353,17 +356,93 @@ function renderShelf() {
 
     const info = document.createElement('div');
     info.className = 'book-info';
-    info.innerHTML = `
-      <div class="book-title-text">${esc(b.title)}</div>
-      <div class="book-author-text">${esc(b.author || 'Unknown Author')}</div>
-      <div class="book-meta">
-        ${b.month ? `<span style="font-size:11px;color:var(--sub);font-style:italic;">${esc(b.month)}</span>` : ''}
-        ${q ? `<span class="chip q">${q} Quote${q!==1?'s':''}</span>` : ''}
-        ${n ? `<span class="chip n">${n} Note${n!==1?'s':''}</span>` : ''}
-      </div>`;
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'book-title-text';
+    titleEl.textContent = b.title;
+
+    const authorEl = document.createElement('div');
+    authorEl.className = 'book-author-text';
+    authorEl.textContent = b.author || 'Unknown Author';
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'book-meta';
+    metaEl.innerHTML = `
+      ${b.month ? `<span style="font-size:11px;color:var(--sub);font-style:italic;">${esc(b.month)}</span>` : ''}
+      ${q ? `<span class="chip q">${q} Quote${q!==1?'s':''}</span>` : ''}
+      ${n ? `<span class="chip n">${n} Note${n!==1?'s':''}</span>` : ''}`;
+
+    const starRow = document.createElement('div');
+    starRow.className = 'star-row';
+    starRow.style.cssText = 'display:flex;gap:3px;margin-top:6px';
+    const ratingKey = `rating_${b.id}`;
+    let currentRating = parseInt(localStorage.getItem(ratingKey) || '0');
+
+    function renderStars() {
+      starRow.innerHTML = '';
+      for (let s = 1; s <= 5; s++) {
+        const star = document.createElement('span');
+        star.className = 'star' + (s <= currentRating ? ' lit' : '');
+        star.textContent = '★';
+        star.dataset.val = s;
+        starRow.appendChild(star);
+      }
+    }
+
+    function applyRating(val) {
+      currentRating = (currentRating === val && val > 0) ? 0 : val;
+      localStorage.setItem(ratingKey, currentRating);
+      renderStars();
+    }
+
+    starRow.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const star = ev.target.closest('[data-val]');
+      if (star) applyRating(parseInt(star.dataset.val));
+    });
+
+    let dragging = false;
+    starRow.addEventListener('mousedown', ev => {
+      ev.stopPropagation(); ev.preventDefault();
+      dragging = true;
+      const star = ev.target.closest('[data-val]');
+      if (star) { currentRating = parseInt(star.dataset.val); localStorage.setItem(ratingKey, currentRating); renderStars(); }
+    });
+    window.addEventListener('mousemove', ev => {
+      if (!dragging) return;
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const star = el && el.closest ? el.closest('[data-val]') : null;
+      if (star && starRow.contains(star)) { currentRating = parseInt(star.dataset.val); localStorage.setItem(ratingKey, currentRating); renderStars(); }
+    });
+    window.addEventListener('mouseup', () => { dragging = false; });
+
+    starRow.addEventListener('touchstart', ev => { ev.stopPropagation(); }, { passive: true });
+    starRow.addEventListener('touchmove', ev => {
+      ev.stopPropagation();
+      const touch = ev.touches[0];
+      const stars = starRow.querySelectorAll('[data-val]');
+      for (const star of stars) {
+        const rect = star.getBoundingClientRect();
+        if (touch.clientX >= rect.left && touch.clientX <= rect.right) {
+          const val = parseInt(star.dataset.val);
+          if (val !== currentRating) { currentRating = val; localStorage.setItem(ratingKey, currentRating); renderStars(); }
+          break;
+        }
+      }
+    }, { passive: true });
+
+    renderStars();
+
+    info.appendChild(titleEl);
+    info.appendChild(authorEl);
+    info.appendChild(metaEl);
 
     const actions = document.createElement('div');
     actions.className = 'book-actions';
+    actions.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;flex-shrink:0;align-self:stretch';
+
+    const iconRow = document.createElement('div');
+    iconRow.style.cssText = 'display:flex;gap:6px;align-items:center';
 
     const editBtn = document.createElement('button');
     editBtn.className = 'icon-btn';
@@ -387,8 +466,9 @@ function renderShelf() {
       if (!isOpen) delBar.classList.add('show');
     });
 
-    actions.appendChild(editBtn);
-    actions.appendChild(delBtn);
+    iconRow.appendChild(editBtn);
+    iconRow.appendChild(delBtn);
+    actions.appendChild(iconRow);
     main.appendChild(info);
     main.appendChild(actions);
     main.addEventListener('click', () => openBook(i));
@@ -470,6 +550,37 @@ function renderShelf() {
       nextBtn.addEventListener('click', () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} buildCalendar(); });
       header.appendChild(prevBtn); header.appendChild(monthLabel); header.appendChild(nextBtn);
       calWrap.appendChild(header);
+
+      // Stars row below month nav
+      const calStarRow = document.createElement('div');
+      calStarRow.style.cssText = 'display:flex;gap:4px;margin-bottom:12px;justify-content:center;margin-top:10px';
+      for (let s = 1; s <= 5; s++) {
+        const star = document.createElement('span');
+        star.className = 'star' + (s <= currentRating ? ' lit' : '');
+        star.textContent = '★';
+        star.dataset.val = s;
+        calStarRow.appendChild(star);
+      }
+      calStarRow.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const star = ev.target.closest('[data-val]');
+        if (star) applyRating(parseInt(star.dataset.val));
+        buildCalendar();
+      });
+      calStarRow.addEventListener('touchmove', ev => {
+        ev.stopPropagation();
+        const touch = ev.touches[0];
+        const stars = calStarRow.querySelectorAll('[data-val]');
+        for (const star of stars) {
+          const rect = star.getBoundingClientRect();
+          if (touch.clientX >= rect.left && touch.clientX <= rect.right) {
+            const val = parseInt(star.dataset.val);
+            if (val !== currentRating) { currentRating = val; localStorage.setItem(ratingKey, currentRating); buildCalendar(); }
+            break;
+          }
+        }
+      }, { passive: true });
+      calWrap.appendChild(calStarRow);
 
       // Day labels row
       const grid = document.createElement('div');
